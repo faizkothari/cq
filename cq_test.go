@@ -14,7 +14,7 @@ func TestEnqueue(t *testing.T) {
 	q.Enqueue(3)
 	q.Enqueue(4)
 
-	t.Error(q.ToSlice(), q.Len())
+	//	t.Error(q.ToSlice(), q.Len())
 }
 
 func TestDequeue(t *testing.T) {
@@ -24,9 +24,9 @@ func TestDequeue(t *testing.T) {
 	q.Enqueue(3)
 	q.Enqueue(4)
 
-	a := q.Dequeue()
-	b := q.Dequeue()
-	t.Error(q.ToSlice(), q.Len(), a, b)
+	//a := q.Dequeue()
+	//b := q.Dequeue()
+	//	t.Error(q.ToSlice(), q.Len(), a, b)
 }
 
 func TestConcurrentEnqueue(t *testing.T) {
@@ -38,7 +38,7 @@ func TestConcurrentEnqueue(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		<-done
 	}
-	t.Error(q.ToSlice(), q.Len())
+	//	//t.Error(q.ToSlice(), q.Len())
 }
 
 func TestConcurrentDequeue(t *testing.T) {
@@ -55,7 +55,7 @@ func TestConcurrentDequeue(t *testing.T) {
 	for i := 0; i < 15; i++ {
 		resArr = append(resArr, <-res)
 	}
-	t.Error(resArr, q.ToSlice(), q.Len())
+	//	t.Error(resArr, q.ToSlice(), q.Len())
 }
 
 func dequeueRoutine(q *Queue, res chan interface{}) {
@@ -71,4 +71,26 @@ func enqueueRoutine(q *Queue, num int, done chan bool) {
 	time.Sleep(time.Duration(t) * time.Millisecond)
 	q.Enqueue(num)
 	done <- true
+}
+
+func BenchmarkEnqueue(b *testing.B) {
+	q := New()
+	var msg [100]byte
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		q.Enqueue(msg)
+	}
+	b.Log(len(q.ToSlice()))
+}
+
+func BenchmarkEnqueueParallel(b *testing.B) {
+	q := New()
+	var msg [100]byte
+	f := func(pb *testing.PB) {
+		for pb.Next() {
+			q.Enqueue(msg)
+		}
+	}
+	b.RunParallel(f)
+	b.Log(len(q.ToSlice()))
 }
