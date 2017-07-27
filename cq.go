@@ -7,7 +7,7 @@ import (
 
 type (
 	node struct {
-		data interface{}
+		item interface{}
 		next unsafe.Pointer
 	}
 
@@ -24,15 +24,12 @@ func New() *Queue {
 	return q
 }
 
-func newNode(data interface{}) unsafe.Pointer {
-	return unsafe.Pointer(&node{data: data, next: unsafe.Pointer(nil)})
+func newNode(item interface{}) unsafe.Pointer {
+	return unsafe.Pointer(&node{item: item, next: unsafe.Pointer(nil)})
 }
 
-func (q *Queue) Enqueue(data interface{}) {
-	if data == nil {
-		return
-	}
-	n := newNode(data)
+func (q *Queue) Enqueue(item interface{}) {
+	n := newNode(item)
 
 	for {
 		tail := q.tail
@@ -51,7 +48,7 @@ func (q *Queue) Enqueue(data interface{}) {
 	}
 }
 
-func (q *Queue) Dequeue() interface{} {
+func (q *Queue) Dequeue() (interface{}, bool) {
 	for {
 		head := q.head
 		tail := q.tail
@@ -60,14 +57,14 @@ func (q *Queue) Dequeue() interface{} {
 		if head == q.head {
 			if head == tail {
 				if next == unsafe.Pointer(nil) {
-					return nil
+					return nil, false
 				}
 				atomic.CompareAndSwapPointer(&q.tail, tail, next)
 			} else {
-				data := (*node)(next).data
+				item := (*node)(next).item
 				if atomic.CompareAndSwapPointer(&q.head, head, next) {
 					atomic.AddInt64(&q.len, -1)
-					return data
+					return item, true
 				}
 			}
 		}
@@ -82,7 +79,7 @@ func (q *Queue) ToSlice() []interface{} {
 	s := make([]interface{}, 0, 4)
 	p := (*node)(atomic.LoadPointer(&q.head)).next
 	for ; p != unsafe.Pointer(nil); p = (*node)(p).next {
-		s = append(s, (*node)(p).data)
+		s = append(s, (*node)(p).item)
 	}
 	return s
 }

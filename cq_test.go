@@ -1,7 +1,6 @@
 package cq
 
 import (
-	_ "fmt"
 	"math/rand"
 	"testing"
 	"time"
@@ -9,24 +8,54 @@ import (
 
 func TestEnqueue(t *testing.T) {
 	q := New()
+
+	if q.Len() != 0 {
+		t.Error("Length != 0")
+	}
+	items := q.ToSlice()
+	if len(items) != 0 {
+		t.Error("0 items expected, found:", len(items))
+	}
+
 	q.Enqueue(1)
 	q.Enqueue(2)
-	q.Enqueue(3)
-	q.Enqueue(4)
 
-	//	t.Error(q.ToSlice(), q.Len())
+	if q.Len() != 2 {
+		t.Error("Length != 2")
+	}
+	items = q.ToSlice()
+	if len(items) != 2 {
+		t.Error("2 items expected, found:", len(items))
+	}
 }
 
 func TestDequeue(t *testing.T) {
 	q := New()
 	q.Enqueue(1)
 	q.Enqueue(2)
-	q.Enqueue(3)
-	q.Enqueue(4)
 
-	//a := q.Dequeue()
-	//b := q.Dequeue()
-	//	t.Error(q.ToSlice(), q.Len(), a, b)
+	a, ok := q.Dequeue()
+	if a != 1 || !ok {
+		t.Error("Expected a: 1 ok: true. found a:", a, "ok:", ok)
+	}
+
+	b, ok := q.Dequeue()
+	if b != 2 || !ok {
+		t.Error("Expected b: 2 ok: true. found b:", b, "ok:", ok)
+	}
+
+	c, ok := q.Dequeue()
+	if c != nil || ok {
+		t.Error("Expected c: nil ok: false. found c:", c, "ok:", ok)
+	}
+
+	if q.Len() != 0 {
+		t.Error("Length != 0")
+	}
+	items := q.ToSlice()
+	if len(items) != 0 {
+		t.Error("0 items expected, found:", len(items))
+	}
 }
 
 func TestConcurrentEnqueue(t *testing.T) {
@@ -38,7 +67,15 @@ func TestConcurrentEnqueue(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		<-done
 	}
-	//	//t.Error(q.ToSlice(), q.Len())
+
+	if q.Len() != 10 {
+		t.Error("Length != 10")
+	}
+
+	items := q.ToSlice()
+	if len(items) != 10 {
+		t.Error("10 items expected, found:", len(items))
+	}
 }
 
 func TestConcurrentDequeue(t *testing.T) {
@@ -47,6 +84,7 @@ func TestConcurrentDequeue(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		q.Enqueue(i)
 	}
+
 	for i := 0; i < 5; i++ {
 		go dequeueRoutine(q, res)
 	}
@@ -55,15 +93,39 @@ func TestConcurrentDequeue(t *testing.T) {
 	for i := 0; i < 15; i++ {
 		resArr = append(resArr, <-res)
 	}
-	//	t.Error(resArr, q.ToSlice(), q.Len())
+
+	if q.Len() != 0 {
+		t.Error("Length != 0")
+	}
+	items := q.ToSlice()
+	if len(items) != 0 {
+		t.Error("0 items expected, found:", len(items))
+	}
+
+	itemCount := 0
+	nilCount := 0
+	for i := 0; i < 15; i++ {
+		item := resArr[i]
+
+		if _, ok := item.(int); ok {
+			itemCount += 1
+		} else {
+			nilCount += 1
+		}
+	}
+	if itemCount != 10 || nilCount != 5 {
+		t.Error("Expected number of items: 10, found:", itemCount)
+		t.Error("Expected number of nils: 5, found:", nilCount)
+	}
 }
 
 func dequeueRoutine(q *Queue, res chan interface{}) {
-	//t := rand.Int63() % 100
-	//time.Sleep(time.Duration(t) * time.Millisecond)
-	res <- q.Dequeue()
-	res <- q.Dequeue()
-	res <- q.Dequeue()
+	t := rand.Int63() % 10
+	time.Sleep(time.Duration(t) * time.Millisecond)
+	for i := 0; i < 3; i++ {
+		item, _ := q.Dequeue()
+		res <- item
+	}
 }
 
 func enqueueRoutine(q *Queue, num int, done chan bool) {
