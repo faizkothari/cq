@@ -1,3 +1,5 @@
+// Concurrent Lock-Free Non-Blocking Queue. All operations are non-blocking.
+// Algorithm is borrowed from: https://www.research.ibm.com/people/m/michael/podc-1996.pdf
 package cq
 
 import (
